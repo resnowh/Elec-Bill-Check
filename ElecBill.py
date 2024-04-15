@@ -67,6 +67,28 @@ def get_yesterday_electricity_usage(remaining_amount):
     except FileNotFoundError:
         return "未找到电费记录文件"
 
+def check_ifSomebodyPay(remaining_amount):
+    """检查是否有人充钱"""
+    try:
+        # 打开 Excel 文件
+        wb = openpyxl.load_workbook('electricity_records.xlsx')
+        sheet = wb['电费记录']
+
+        #读取上一条电费记录
+        record_amount = sheet.cell(row=sheet.max_row - 1, column=1).value
+        record_time = sheet.cell(row=sheet.max_row - 1, column=2).value
+        print(record_amount,record_time)
+        # 如果钱变多了
+        if (float(remaining_amount) > float(record_amount)):
+            # 计算昨日使用电量
+            increased_amount = float(remaining_amount) - float(record_amount)
+            return increased_amount
+        else:
+            return 0
+
+    except FileNotFoundError:
+        print ("未找到电费记录文件")
+
 def get_electricity_bill():
     """获取电费信息"""
     url = "http://172.31.248.26:8988/web/Common/Tsm.html"
@@ -112,16 +134,30 @@ def parse_electricity_bill(bill):
     remaining_amount = data['query_elec_roominfo']['errmsg'].split('剩余金额:')[1]
     return float(remaining_amount)
 
-def send_notification(remaining_amount, yesterday_usage):
+def send_notification(remaining_amount, yesterday_usage, increased_amount):
     """发送电费通知"""
     #仅返回两位小数
     remaining_amount = round(remaining_amount, 2)
     yesterday_usage = round(yesterday_usage, 2)
+    increased_amount = round(increased_amount, 2)
 
     xiaoding = DingtalkChatbot(webhook, secret=secret)
-    xiaoding.send_text(msg=f'【电费】{room} 目前剩余电费 {remaining_amount} 元, 昨天使用电费 {yesterday_usage} 元')
+    text = ""
+
     if remaining_amount < limit:
-        xiaoding.send_text(msg=f'⚠️ {room} 宿舍用电即将欠费，请尽快充值', is_at_all=True)
+        #钱到达阈值
+        text += f"⚠️ {room} 宿舍用电即将欠费，请尽快充值"
+        xiaoding.send_text(text, is_at_all=True)
+    else:
+        text += f"🔋【电费】{room} \n"
+        # 钱变多了
+        if increased_amount > 0:
+            text += f"💰️有人充电费啦！电费余额增加了 {increased_amount} 元！\n"
+        #正常的报告信息
+        text += f"目前剩余电费 {remaining_amount} 元,\n"
+        text += f"昨天使用电费 {yesterday_usage} 元。"
+        xiaoding.send_text(text)
+
 
 def main():
     """主函数"""
@@ -134,7 +170,8 @@ def main():
         write_to_excel(remaining_amount)
         #读取是否存在昨日电费
         yesterday_usage = get_yesterday_electricity_usage(remaining_amount)
-        send_notification(remaining_amount, yesterday_usage)
+        increased_amount = check_ifSomebodyPay(remaining_amount)
+        send_notification(remaining_amount, yesterday_usage, increased_amount)
     print("电费检查程序结束")
 
 if __name__ == "__main__":
