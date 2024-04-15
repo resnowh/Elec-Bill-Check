@@ -227,8 +227,6 @@ def main():
     if bill:
         remaining_amount = parse_electricity_bill(bill)
         print("剩余电费:", remaining_amount)
-        #写入本地表格
-        write_to_excel(remaining_amount)
         #读取是否存在昨日电费
         yesterday_usage = get_yesterday_electricity_usage(remaining_amount)
         print("昨日消耗电费:", yesterday_usage)
@@ -236,6 +234,8 @@ def main():
         increased_amount = check_ifSomebodyPay(remaining_amount)
         #如果数据更新，再发送通知
         if check_ifUsageChange(remaining_amount):
+            # 写入本地表格
+            write_to_excel(remaining_amount)
             send_notification(remaining_amount, yesterday_usage, increased_amount)
     print("电费检查程序结束")
 
