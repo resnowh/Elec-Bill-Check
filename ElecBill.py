@@ -89,6 +89,26 @@ def check_ifSomebodyPay(remaining_amount):
     except FileNotFoundError:
         print ("未找到电费记录文件")
 
+def check_ifUsageChange(remaining_amount):
+    """检查是否数据更新"""
+    try:
+        # 打开 Excel 文件
+        wb = openpyxl.load_workbook('electricity_records.xlsx')
+        sheet = wb['电费记录']
+
+        #读取上一条电费记录
+        record_amount = sheet.cell(row=sheet.max_row - 1, column=1).value
+        record_time = sheet.cell(row=sheet.max_row - 1, column=2).value
+        print(record_amount,record_time)
+        # 如果钱没变
+        if (float(remaining_amount) == float(record_amount)):
+            return False
+        else:
+            return True
+
+    except FileNotFoundError:
+        print ("未找到电费记录文件")
+
 def get_electricity_bill():
     """获取电费信息"""
     url = "http://172.31.248.26:8988/web/Common/Tsm.html"
@@ -170,8 +190,11 @@ def main():
         write_to_excel(remaining_amount)
         #读取是否存在昨日电费
         yesterday_usage = get_yesterday_electricity_usage(remaining_amount)
+        #读取是否有人充钱
         increased_amount = check_ifSomebodyPay(remaining_amount)
-        send_notification(remaining_amount, yesterday_usage, increased_amount)
+        #如果数据更新，再发送通知
+        if check_ifUsageChange(remaining_amount):
+            send_notification(remaining_amount, yesterday_usage, increased_amount)
     print("电费检查程序结束")
 
 if __name__ == "__main__":
