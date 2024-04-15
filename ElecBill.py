@@ -2,12 +2,13 @@ import json
 import requests
 from dingtalkchatbot.chatbot import DingtalkChatbot
 
+
 limit = 20  # 欠费预警阈值
-room = '3S527'  # 房间号
-room_id = '300352711'  # 电费查询号码
-# 机器人参数，webhook 和 secret，使用时在PC端创建机器人后可以查看并替换成自己的
-webhook = 'https://oapi.dingtalk.com/robot/send?access_token=2e1a8e3bf5c77c5d3e341b63494239d537c8a18dc76653f1231bd52dec4bcfb9'
-secret = 'SEC8834a56af271fb0246db77347726811e3aa13080b888db6c44204db7ab8c0f93'
+room = ''  # 房间号，用作显示名称
+room_id = ''  # 电费查询号码，与服务大厅的电费查询号码相同
+# 机器人参数，webhook 和 secret，使用时在PC端钉钉创建机器人后可以查看并替换成自己的
+webhook = ' '
+secret = ' '
 # 查询请求数据
 data_dict = {
     "query_elec_roominfo": {
