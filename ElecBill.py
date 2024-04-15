@@ -38,6 +38,48 @@ def get_yesterday_electricity_usage(remaining_amount):
         wb = openpyxl.load_workbook('electricity_records.xlsx')
         sheet = wb['电费记录']
 
+        yesterday_records = []
+
+        # 遍历每一条数据
+        for row in range(sheet.max_row, 1, -1):
+            # 获取时间和电量
+            record_time = sheet.cell(row=row, column=2).value
+            record_amount = sheet.cell(row=row, column=1).value
+
+            # 如果 record_time 是字符串类型，转换为 datetime 类型
+            if isinstance(record_time, str):
+                record_time = datetime.strptime(record_time, "%Y-%m-%d %H:%M:%S")
+
+            # 如果记录的日期是昨天，则将其添加到列表中
+            if record_time.date() == datetime.now().date() - timedelta(days=1):
+                yesterday_records.append(record_amount)
+
+            # 如果找到了昨天的第一条记录和最后一条记录，则退出循环
+            if len(yesterday_records) == 2:
+                break
+
+        # 如果找到了昨天的第一条记录和最后一条记录，则计算昨日使用电量
+        if len(yesterday_records) == 2:
+            yesterday_usage = yesterday_records[1] - yesterday_records[0]
+            if (yesterday_usage != 0 and yesterday_usage != remaining_amount):
+                return yesterday_usage
+            else:
+                # 如果未找到符合条件的记录，则返回未找到昨日电费数据
+                return "未找到昨日电费数据"
+        else:
+            # 如果未找到符合条件的记录，则返回未找到昨日电费数据
+            return "未找到昨日电费数据"
+
+    except FileNotFoundError:
+        return "未找到电费记录文件"
+
+def get_past24hours_electricity_usage(remaining_amount):
+    """获取过去24小时内使用的电量并计算消耗电费"""
+    try:
+        # 打开 Excel 文件
+        wb = openpyxl.load_workbook('electricity_records.xlsx')
+        sheet = wb['电费记录']
+
         # 遍历每一条数据
         for row in range(sheet.max_row, 1, -1):
             # 获取时间和电量
@@ -98,8 +140,8 @@ def check_ifUsageChange(remaining_amount):
 
         #读取上一条电费记录
         record_amount = sheet.cell(row=sheet.max_row - 1, column=1).value
-        record_time = sheet.cell(row=sheet.max_row - 1, column=2).value
-        print(record_amount,record_time)
+        #record_time = sheet.cell(row=sheet.max_row - 1, column=2).value
+
         # 如果钱没变
         if (float(remaining_amount) == float(record_amount)):
             return False
@@ -185,11 +227,11 @@ def main():
     if bill:
         remaining_amount = parse_electricity_bill(bill)
         print("剩余电费:", remaining_amount)
-        print("昨日消耗电费:", remaining_amount)
         #写入本地表格
         write_to_excel(remaining_amount)
         #读取是否存在昨日电费
         yesterday_usage = get_yesterday_electricity_usage(remaining_amount)
+        print("昨日消耗电费:", yesterday_usage)
         #读取是否有人充钱
         increased_amount = check_ifSomebodyPay(remaining_amount)
         #如果数据更新，再发送通知
